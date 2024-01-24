@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Pixel Art</title>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+			* {
+				font-family: 'VT323', monospace;
+				font-size: 1.1rem;
+			}
+
+			body {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 20px;
+			}
+
+			h1 {
+				color: olivedrab;
+				font-size: 2rem;
+			}
+
+			label {
+				width: 300px;
+			}
+
+			label:first-of-type {
+				margin-bottom: 20px;
+			}
+
+			input[type='number'] {
+				width: 277px;
+				padding: 10px;
+				outline: none;
+				margin-top: 6px;
+			}
+
+			img[src=''] {
+				display: none;
+			}
+
+			img {
+				max-width: 90%;
+				max-height: 300px;
+				margin: 20px 0 30px;
+			}
+
+			img:last-of-type {
+				margin-bottom: 80px;
+			}
+
+			input[type='file']::file-selector-button,
+			button {
+				padding: 10px 20px;
+				background: olivedrab;
+				color: #fff;
+				border: none;
+				cursor: pointer;
+				transition: background 0.2s ease-in-out;
+				font-family: 'VT323', monospace;
+				width: 100%;
+				max-width: 300px;
+			}
+
+			button {
+				margin: 10px 0 20px;
+			}
+
+			input[type='file']::file-selector-button:hover,
+			button:hover {
+				background: darkolivegreen;
+			}
+
+			.drop-container {
+				position: relative;
+				display: flex;
+				gap: 10px;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				height: 150px;
+				width: 80%;
+				padding: 20px;
+				border: 2px dashed #555;
+				color: #444;
+				cursor: pointer;
+				transition: background 0.2s ease-in-out, border 0.2s ease-in-out;
+			}
+
+			.drop-container:hover {
+				background: #eee;
+				border-color: #111;
+			}
+
+			.drop-container:hover .drop-title {
+				color: #222;
+			}
+
+			.drop-title {
+				color: #444;
+				font-size: 20px;
+				font-weight: bold;
+				text-align: center;
+				transition: color 0.2s ease-in-out;
+			}
+
+			.drop-container.drag-active {
+				background: #eee;
+				border-color: #111;
+			}
+
+			.drop-container.drag-active .drop-title {
+				color: #222;
+			}
+		</style>
+		<script>
+			const readFile = (e) => {
+				if (!e.target.files || !e.target.files[0]) return;
+
+				const FR = new FileReader();
+				FR.addEventListener('load', (e) => {
+					document.getElementById('imgO').src = e.target.result;
+					document.getElementById('imgP').src = '';
+					scrollDown();
+				});
+
+				FR.readAsDataURL(e.target.files[0]);
+			};
+
+			const scrollDown = () =>
+				setTimeout(
+					() => window.scrollTo({ behavior: 'smooth', top: document.body.scrollHeight }),
+					1
+				);
+
+			const updateRange = (e) => {
+				document.getElementById('pixel-size').max = Math.min(
+					e.target.naturalWidth,
+					e.target.naturalHeight
+				);
+			};
+
+			const initFileInput = () => {
+				const dropContainer = document.getElementById('dropcontainer');
+				const fileInput = document.getElementById('inp');
+
+				dropContainer.addEventListener('dragover', (e) => e.preventDefault(), false);
+
+				dropContainer.addEventListener('dragenter', () => {
+					dropContainer.classList.add('drag-active');
+				});
+
+				dropContainer.addEventListener('dragleave', () => {
+					dropContainer.classList.remove('drag-active');
+				});
+
+				dropContainer.addEventListener('drop', (e) => {
+					e.preventDefault();
+					dropContainer.classList.remove('drag-active');
+					fileInput.files = e.dataTransfer.files;
+					fileInput.dispatchEvent(new CustomEvent('change'));
+				});
+			};
+
+			const checkRange = (e) => {
+				e.target.value = Math.min(e.target.max, Math.max(e.target.min, e.target.value));
+			};
+
+			const pixelate = () => {
+				const imgP = document.getElementById('imgP');
+				const image = document.getElementById('imgO').src;
+				const pixelSize = document.getElementById('pixel-size').value;
+				const colors = document.getElementById('colors').value;
+				if (!image.includes('base64')) return;
+
+				fetch('/', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						image,
+						pixelSize,
+						colors,
+					}),
+				})
+					.then((res) => res.json())
+					.then(({ img }) => {
+						imgP.src = img;
+						scrollDown();
+					});
+			};
+		</script>
+	</head>
+	<body onload="initFileInput()">
+		<h1>PIXEL ART</h1>
+		<label for="inp" class="drop-container" id="dropcontainer">
+			<span class="drop-title">Drop the image here</span>
+			or
+			<input type="file" id="inp" accept="image/*" onchange="readFile(event)" />
+		</label>
+		<img id="imgO" src="" alt="original" onload="updateRange(event)" />
+		<label for="pixel-size"
+			>Pixel Size
+			<input
+				type="number"
+				id="pixel-size"
+				name="pixel-size"
+				min="1"
+				max="10"
+				value="10"
+				onchange="checkRange(event)"
+		/></label>
+		<label for="colors"
+			>Colors
+			<input
+				type="number"
+				id="colors"
+				name="colors"
+				min="1"
+				max="256"
+				value="256"
+				onchange="checkRange(event)"
+		/></label>
+		<button onclick="pixelate()">Pixelate!</button>
+		<img id="imgP" src="" alt="pixelated" />
+	</body>
+</html>
